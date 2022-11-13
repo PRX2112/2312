@@ -1,0 +1,203 @@
+student.blade.php
+
+<html>
+<body>
+    <h1>Student Registration</h1>
+
+    <form action="{{ URL::to('urlinsert')}}" method="POST">
+    @csrf
+
+        <table border="2" cellPadding="10px">
+            <input type="hidden" name="txtid" value="@isset ($Record) {{$Record->id}}  @endisset" />
+
+            <tr>
+                <td>Name :</td>
+                <td><input type="text" name="txtnm" value="@isset ($Record) {{$Record->Name}}  @endisset"></td>
+            </tr>
+            <tr>
+                <td>Email ID :</td>
+                <td><input type="email" name="txtemail" value="@isset ($Record) {{$Record->Email_ID}}  @endisset"></td>
+            </tr>
+            <tr>
+                <td>Password :</td>
+                <td><input type="password" name="txtpwd" value="@isset ($Record) {{$Record->Password}}  @endisset"></td>
+            </tr>
+            <tr>
+                <td>Confirm Password :</td>
+                <td><input type="password" name="txtcpwd" value="@isset ($Record) {{$Record->Password}}  @endisset"></td>
+            </tr>
+            <tr>
+                <td>Age :</td>
+                <td><input type="text" name="txtage" value="@isset ($Record) {{$Record->Age}}  @endisset"></td>
+            </tr>
+            <tr>
+                <td>Photo :</td>
+                <td><input type="file" name="txtimg"></td>
+            </tr>
+            <tr>
+                <td colspan="2"><input type="submit" name="operation" value="Insert">
+                                <input type="submit" name="operation" value="Update"></td>
+            </tr>
+        
+        </table>
+    </form>
+    <br><br>
+
+    <table border="3" cellpadding="10px">
+        <tr>
+            <td>ID</td>
+            <td>NAME</td>
+            <td>EMAIL_ID</td>
+            <td>PASSWORD</td>
+            <td>AGE</td>
+
+        </tr>
+        @foreach($Data as $d)
+            <tr>
+                <td>{{$d->id}}</td>
+                <td>{{$d->Name}}</td>
+                <td>{{$d->Email_ID}}</td>
+                <td>{{$d->Password}}</td>
+                <td>{{$d->Age}}</td>
+                <td><a href="urledit/{{$d->id}}" style="text-decoration:none;color:black;"><button>EDIT</button></a></td>
+                <td><a href="urldelete/{{$d->id}}" style="text-decoration:none;color:black;"><button>DELETE</button></a></td>
+
+                
+            </tr>
+
+        @endforeach
+
+    </table>
+
+</body>
+</html>
+
+QueryBuilderController
+
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+
+class QueryBuilderController extends Controller
+{
+
+    function loadview()
+    {
+        $data=DB::table('tblstudent')->get();
+        return view('student',['Data'=>$data]);
+
+    }
+
+    function InsertData(Request $req)
+    {
+        if($req->operation == "Insert")
+        {
+            $req->validate([
+
+                'txtnm'=>'required',
+                'txtemail'=>'required|email',
+                'txtpwd'=>'required',
+                'txtcpwd'=>'required|same:txtpwd',
+                'txtage'=>'required',
+            ],
+            
+            $messages=[
+                'txtnm.required'=>'Please Enter Name'
+            ]
+        );
+
+        $file=$req->txtimg;
+        $oName=$file->getClientOriginalName();
+        $basename=substr($oName,0,stripos($oName,'.'));
+        $ext=$file->getClientOriginalExtension();
+        $newname=md5($basename).rand(10,500) . "." . $ext;
+
+        $file->move(public_path('upload'),$newname);
+               
+
+            DB::table('tblstudent')->insert([
+
+                'Name'=>$req->txtnm,
+                'Email_ID'=>$req->txtemail,
+                'Password'=>$req->txtpwd,
+                'Age'=>$req->txtage,
+                'Photo'=>$newname
+            ]);
+
+            echo "<script>alert('Inserted Successfully.... ');
+                window.location.href='urlloadview';</script>";
+        }
+
+        // UPDATE DATA
+        if($req->operation=="Update")
+        {
+            $req->validate([
+
+                'txtnm'=>'required',
+                'txtemail'=>'required|email',
+                'txtpwd'=>'required',
+                'txtcpwd'=>'required|same:txtpwd',
+                'txtage'=>'required',
+            ]         
+           
+        );
+
+            $file=$req->txtimg;
+
+            $oName=$file->getClientOriginalName();
+            $basename=substr($oName,0,stripos($oName,'.'));
+            $ext=$file->getClientOriginalExtension();
+            $newname=md5($basename).rand(10,500) . "." . $ext;
+    
+            $file->move(public_path('upload'),$newname);
+
+            DB::table('tblstudent')->where('id',$req->txtid)->update([
+                'Name'=>$req->txtnm,
+                'Email_ID'=>$req->txtemail,
+                'Password'=>$req->txtpwd,
+                'Age'=>$req->txtage,
+                'Photo'=>$newname
+            ]);
+        }
+        return redirect('urlloadview');
+    }
+
+    function EditData($id)
+    {
+        $record=DB::table('tblstudent')->where('id',$id)->get();
+        $r=$record[0];
+        $data=DB::table('tblstudent')->get();
+
+        return view('student',['Data'=>$data,'Record'=>$r]);
+    }
+    function DeleteData($id)
+    {
+        DB::table('tblstudent')->where('id',$id)->delete();
+        return redirect('urlloadview');
+    }
+}
+
+web.php
+
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\testController;
+use App\Http\Controllers\QueryBuilderController;
+
+use App\Http\Middleware\checkAge;
+
+
+Route::get('/', function () {
+   // echo $name;
+    return view('welcome');
+});
+
+Route::get('urlloadview',[QueryBuilderController::class,'loadview']);
+Route::post('urlinsert',[QueryBuilderController::class,'InsertData']);
+Route::get('urldelete/{id}',[QueryBuilderController::class,'DeleteData']);
+Route::get('urledit/{id}',[QueryBuilderController::class,'EditData']);
