@@ -1,0 +1,494 @@
+>>Web.config
+<connectionStrings>
+    <add name="" connectionString=""/>
+  </connectionStrings>
+
+>>tables
+
+USE [wcfprac]
+GO
+
+/****** Object:  Table [dbo].[Department]    Script Date: 05-12-2022 09:43:53 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[Department](
+	[DeptId] [int] IDENTITY(1,1) NOT NULL,
+	[DeptName] [nvarchar](50) NULL,
+	[Status] [int] NULL,
+ CONSTRAINT [PK_Department] PRIMARY KEY CLUSTERED 
+(
+	[DeptId] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+
+------------
+
+USE [wcfprac]
+GO
+
+/****** Object:  Table [dbo].[Employee]    Script Date: 05-12-2022 09:44:37 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[Employee](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [nvarchar](50) NULL,
+	[Salary] [decimal](18, 0) NULL,
+	[DeptId] [int] NULL,
+	[Status] [int] NULL,
+ CONSTRAINT [PK_Employee] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[Employee]  WITH CHECK ADD  CONSTRAINT [FK_Employee_Employee] FOREIGN KEY([DeptId])
+REFERENCES [dbo].[Department] ([DeptId])
+ON UPDATE CASCADE
+ON DELETE CASCADE
+GO
+
+ALTER TABLE [dbo].[Employee] CHECK CONSTRAINT [FK_Employee_Employee]
+GO
+
+
+
+
+>>Procedures
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[getEmployee]
+	@Id int = null
+AS
+BEGIN
+	Select E.id , E.Name , E.Salary, E.DeptId, D.DeptName
+	from Employee E
+	Join Department D
+	on E.DeptId = D.DeptId
+	where D.Status = 1
+	And id = ISNULL(@Id, id)
+END
+GO
+
+-----------------------------------------------------------
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[Insert_Employee]
+	@Name varchar(50),
+	@Salary int,
+	@DeptId int
+AS
+BEGIN
+	Insert into Employee
+	(Name,Salary,DeptId) values
+	(@Name,@Salary,@DeptId)
+END
+GO
+
+------------------------------------------------------------
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[Update_Employee]
+	@Id int,
+	@Name varchar(50),
+	@Salary int,
+	@DeptId int
+AS
+BEGIN
+	Update Employee Set
+	Name=@Name,Salary=@Salary,DeptId=@DeptId
+	where id=@Id
+END
+GO
+
+------------------------------------------------------------
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[Delete_Employee]
+	@Id int
+AS
+BEGIN
+	Delete from Employee
+	where id=@Id
+END
+GO
+
+-----------------------------------------------------------
+
+
+
+>>IService1.cs
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.ServiceModel;
+using System.ServiceModel.Web;
+using System.Text;
+
+namespace prx_WCF
+{
+    // NOTE: You can use the "Rename" command on the "Refactor" menu to change the interface name "IService1" in both code and config file together.
+    [ServiceContract]
+    public interface IService1
+    {
+        [OperationContract]
+        string InsertEmpDetails(EmpDetails eDetails);
+
+        [OperationContract]
+        DataSet GetEmpDetails(EmpDetails eDetails);
+
+        [OperationContract]
+        DataSet FetchUpdatedRecords(EmpDetails eDetails);
+
+        [OperationContract]
+        string UpdateEmpDetails(EmpDetails eDetails);
+
+        [OperationContract]
+        bool DeleteEmpDetails(EmpDetails eDetails);
+
+
+    }
+
+    [DataContract]
+    public class EmpDetails
+    {
+        int? eId;
+        string eName = string.Empty;
+        string eSalary = string.Empty;
+        string eDeptId = string.Empty;
+        string eDeptName = string.Empty;
+
+        [DataMember]
+        public int? Id
+        {
+            get { return eId; }
+            set { eId = value; }
+        }
+
+        [DataMember]
+        public string Name
+        {
+            get { return eName; }
+            set { eName = value; }
+        }
+
+        [DataMember]
+        public string Salary
+        {
+            get { return eSalary; }
+            set { eSalary = value; }
+        }
+
+        [DataMember]
+        public string DeptId
+        {
+            get { return eDeptId; }
+            set { eDeptId = value; }
+        }
+
+        [DataMember]
+        public string DeptName
+        {
+            get { return eDeptName; }
+            set { eDeptName = value; }
+        }
+    }
+}
+
+>>Service1.svc.cs
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.ServiceModel;
+using System.ServiceModel.Web;
+using System.Text;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Data;
+
+namespace prx_WCF
+{
+    // NOTE: You can use the "Rename" command on the "Refactor" menu to change the class name "Service1" in code, svc and config file together.
+    // NOTE: In order to launch WCF Test Client for testing this service, please select Service1.svc or Service1.svc.cs at the Solution Explorer and start debugging.
+    public class Service1 : IService1
+    {
+
+        SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["mydb"].ConnectionString);
+        public string InsertEmpDetails(EmpDetails eDetails)
+        {
+            string status;
+            SqlCommand cmd = new SqlCommand("Insert_Employee", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Name", eDetails.Name);
+            cmd.Parameters.AddWithValue("@Salary", eDetails.Salary);
+            cmd.Parameters.AddWithValue("@DeptId", eDetails.DeptId);
+            if(con.State == ConnectionState.Closed)
+            {
+                con.Open();
+            }
+            int result = cmd.ExecuteNonQuery();
+            if (result == 1)
+            {
+                status = eDetails.Name + " " + eDetails.Salary + " Registered Successfully";
+            } 
+            else
+            {
+                status = eDetails.Name + " " + eDetails.Salary + " Register Fail!!!";
+            }
+            con.Close();
+            return status;
+        }
+
+
+
+        public DataSet GetEmpDetails(EmpDetails eDetails)
+        {
+            SqlCommand cmd = new SqlCommand("getEmployee", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Id", eDetails.Id);
+            if(con.State== ConnectionState.Closed)
+            {
+                con.Open();
+            }
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+            DataSet ds = new DataSet();
+            da.Fill(ds);
+            cmd.ExecuteNonQuery();
+            con.Close();
+            return ds;
+        }
+
+
+        public DataSet FetchUpdatedRecords(EmpDetails eDetails)
+        {
+            SqlCommand cmd = new SqlCommand("getEmployee", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Id", eDetails.Id);
+            if (con.State == ConnectionState.Closed)
+            {
+                con.Open();
+            }
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+            DataSet ds = new DataSet();
+            da.Fill(ds);
+            cmd.ExecuteNonQuery();
+            con.Close();
+            return ds;
+        }
+
+
+        public string UpdateEmpDetails(EmpDetails eDetails)
+        {
+            string status;
+            SqlCommand cmd = new SqlCommand("Update_Employee", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Id", eDetails.Id);
+            cmd.Parameters.AddWithValue("@Name", eDetails.Name);
+            cmd.Parameters.AddWithValue("@Salary", eDetails.Salary);
+            cmd.Parameters.AddWithValue("@DeptId", eDetails.DeptId);
+            if (con.State == ConnectionState.Closed)
+            {
+                con.Open();
+            }
+            int result = cmd.ExecuteNonQuery();
+            if (result == 1)
+            {
+                status = eDetails.Name + " " + eDetails.Salary + " Registered Successfully";
+            }
+            else
+            {
+                status = eDetails.Name + " " + eDetails.Salary + " Register Fail!!!";
+            }
+            con.Close();
+            return status;
+        }
+
+
+        public bool DeleteEmpDetails(EmpDetails eDetails)
+        {
+            SqlCommand cmd = new SqlCommand("Update_Employee", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Id", eDetails.Id);
+            if (con.State == ConnectionState.Closed)
+            {
+                con.Open();
+            }
+            cmd.ExecuteNonQuery();
+            con.Close();
+            return true;
+        }
+    }
+}
+
+
+>>web app
+
+>>index.aspx
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="index.aspx.cs" Inherits="PRXCRUD.index" %>
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title></title>
+</head>
+<body>
+    <form id="form1" runat="server">
+    <div>
+        <div style="width:100%;" align="center">
+            <fieldset style="width:40%;">
+                <legend>PRX WCF CRUD</legend>
+                <table style="width:100%;">
+                    <tr>
+                        <td>Name :</td>
+                        <td><asp:TextBox ID="txtName" runat="server"></asp:TextBox></td>
+                    </tr>
+                    <tr>
+                        <td>Salary :</td>
+                        <td><asp:TextBox ID="txtSalary" runat="server"></asp:TextBox></td>
+                    </tr>
+                    <tr>
+                        <td>DeptId :</td>
+                        <td><asp:TextBox ID="txtDeptId" runat="server"></asp:TextBox></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <asp:Button ID="btnSubmit" runat="server" Text="Submit" OnClick="btnSubmit_Click1" ></asp:Button>
+                            <asp:Button ID="btnCancel" runat="server" Text="Cancel" OnClick="btnCancel_Click"></asp:Button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><asp:Label ID="lblStatus" runat="server"></asp:Label></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <br />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+
+                            <asp:GridView ID="GridView1" runat="server" Width="364px">
+                            </asp:GridView>
+
+                        </td>
+                    </tr>
+                </table>
+            </fieldset>
+
+        </div>    
+    </div>
+    </form>
+</body>
+</html>
+
+>>index.aspx.cs
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Data;
+using PRXCRUD.ServiceReference1;
+namespace PRXCRUD
+{
+    public partial class index : System.Web.UI.Page
+    {
+        ServiceReference1.Service1Client obj = new ServiceReference1.Service1Client();
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (!Page.IsPostBack)
+            {
+                BindEmpDetails(null);
+                ClearControls();
+            }
+        }
+
+        private void ClearControls()
+        {
+            txtName.Text = string.Empty;
+            txtSalary.Text = string.Empty;
+            txtDeptId.Text = string.Empty;
+            txtName.Focus();
+        }
+
+        private void BindEmpDetails(int? Id)
+        {
+            EmpDetails eDetails = new EmpDetails();
+            DataSet ds = new DataSet();
+            ds=obj.GetEmpDetails(eDetails);
+            GridView1.DataSource = ds;
+            GridView1.DataBind();
+        }
+
+        private void saveEmpDetails()
+        {
+            EmpDetails eDetails = new EmpDetails();
+            eDetails.Name = txtName.Text.Trim();
+            eDetails.Salary = txtSalary.Text.Trim();
+            eDetails.DeptId = txtDeptId.Text.Trim();
+            lblStatus.Text = obj.InsertEmpDetails(eDetails);
+            ClearControls();
+            BindEmpDetails(null);
+        }
+
+        private void updateEmpDetails()
+        {
+            EmpDetails eDetails = new EmpDetails();
+            eDetails.Id = Convert.ToInt32(ViewState["Id"].ToString());
+            eDetails.Name = txtName.Text.Trim();
+            eDetails.Salary = txtSalary.Text.Trim();
+            eDetails.DeptId = txtDeptId.Text.Trim();
+            lblStatus.Text = obj.UpdateEmpDetails(eDetails);
+            ClearControls();
+            BindEmpDetails(null);
+        }
+      
+
+        protected void btnCancel_Click(object sender, EventArgs e)
+        {
+            ClearControls();
+            lblStatus.Text = string.Empty;
+        }
+
+        protected void btnSubmit_Click1(object sender, EventArgs e)
+        {
+            if (btnSubmit.Text == "Update")
+            {
+                updateEmpDetails();
+            }
+            else
+            {
+                saveEmpDetails();
+            }
+        }
+    }
+}
+
