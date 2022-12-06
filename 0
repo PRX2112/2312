@@ -1,0 +1,145 @@
+>>Register.js
+
+import React,{useState} from 'react'
+import Billustate from '../../../src/Comp/Billustate';
+import Navbar from './Navbar';
+
+const Register = (props) => {
+
+    const [name, setName] = useState('');
+    const [age, setAge] = useState('');
+    const [dob, setDOB] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+
+    const handleName = (e) => {setName(e.target.value)}
+    const handleAge = (e) => {setAge(e.target.value)}
+    const handleDOB = (e) => {setDOB(e.target.value)}
+    const handleEmail = (e) => {setEmail(e.target.value)}
+    const handlePhone = (e) => {setPhone(e.target.value)}
+
+    const collectData = async () => {
+        alert("Name :"+name+"\n"+"Age :"+age+"\n"+"DOB :"+dob+"\n"+"Email :"+email+"\n"+"Phone :"+phone)
+    }
+
+  return (
+    <>
+    <Navbar/>
+        <h1>Hello PRX</h1>
+        <h6><i>{props.tagline}</i></h6>
+        <div class="table-responsive col-6 mx-auto border border-3 border-primary justify-content-center">
+            <table class="table table-primary text-center" >
+                <tbody>
+                    <tr>
+                        <td>Name :</td>
+                        <td><input type="text" name="txtName" value={name} onChange={(e)=>handleName(e)}  className='form-control'/></td>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td>Age :</td>
+                        <td><input type="number" name="txtAge" value={age} onChange={(e)=>handleAge(e)} className='form-control'/></td>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td>DOB :</td>
+                        <td><input type="date" name="txtDOB" value={dob} onChange={(e)=>handleDOB(e)} className='form-control'/></td>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td>Email :</td>
+                        <td><input type="email" name="txtEmail" value={email} onChange={(e)=>handleEmail(e)} className='form-control'/></td>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td>Phone :</td>
+                        <td><input type="number" name="txtPhone" value={phone} onChange={(e)=>handlePhone(e)} className='form-control'/></td>
+                    </tr>
+                    <tr>
+                        <td colSpan='2' align='center'>
+                            <input className='btn w-75 btn-outline-dark' onClick={collectData} type='submit' />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+    </>
+  )
+}
+
+export default Register
+
+>>Billustate
+
+import React,{useState} from 'react'
+import Navbar from './Navbar'
+
+const Billustate = () => {
+
+    const [panipuri, setpanipuri] = useState(0);
+    const [dew, setdew] = useState(0);
+
+    const [qty, setQty] = useState(0);
+    const [total, setTotal] = useState(0);
+    
+    var panipuriprice=20;
+    var dewprice=40;
+    
+    const add=(ch)=>{
+        setQty(qty+1);
+        if(ch=="panipuri"){
+            setpanipuri(panipuri+1);
+            setTotal(total+panipuriprice);
+        }
+        else if(ch=="dew"){
+            setdew(dew+1);
+            setTotal(total+dewprice);
+        }
+    }
+
+    const del=(ch)=>{
+        setQty(qty-1)
+        if(ch=="panipuri"){
+            setpanipuri(panipuri-1);
+            setTotal(total-panipuriprice)
+        } else if(ch=="dew"){
+            setdew(dew-1);
+            setTotal(total-dewprice);
+        }
+    }
+  return (
+    <>
+    <Navbar/>
+    <div className=" container mx-auto">
+        <div className='raw justify-content-center card'>
+
+                    <hr/>
+                    <div className=" mx-auto">
+                        <button className="btn btn-dark" type="submit" onClick={(e)=>{del("panipuri")}}>-</button>
+                        Panipuri ({panipuri})
+                        <button className="btn btn-dark" type="submit" onClick={(e)=>{add("panipuri")}}>+</button>
+                    </div>
+                    <hr/>
+                    <div className=" mx-auto">
+                        <button className="btn btn-dark"  type="submit" onClick={(e)=>{del("dew")}}>-</button>
+                        Dew ({dew})
+                        <button className="btn btn-dark" type="submit" onClick={(e)=>{add("dew")}}>+</button>
+                    </div>
+                    <hr/>
+                    <div className='text-center bg-danger rounded'>
+                        Total : {total}₹
+                    </div>
+                    <hr/>
+        </div>
+                </div>
+                
+    </>
+  )
+}
+
+export default Billustate
+
