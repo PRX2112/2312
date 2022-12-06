@@ -1,0 +1,156 @@
+>>server.js
+
+const express = require("express")
+const mongoose = require("mongoose")
+const cors = require("cors")
+const app = express()
+mongoose.connect("mongodb://localhost:27017/ass5")
+const test_router = require("./routes/test_router")
+app.use(express.json())
+app.use(cors())
+app.use("/api", test_router)
+app.get("/", () => { console.log("Hello world") })
+app.listen(5000, () => { console.log("Server is running 5000"); })
+
+>>model
+const mongoose = require("mongoose")
+const register = new mongoose.Schema({
+    name : {
+        type : String,
+        require : true
+    },
+    count : {
+        type : Number,
+        require : true
+    }
+})
+module.exports = mongoose.model("collection1", register, "collection1")
+
+>>route
+
+const express = require("express")
+const router = express.Router()
+const test_model = require("../models/test_model")
+
+router.post("/insertdata", async (req, res) => {
+    console.log(req.body);
+    const data = new test_model ({
+    name : req.body.name,
+    count : req.body.count
+    })
+    const save = await data.save()
+    return res.status(201).json(save)
+})
+
+router.get("/display", async (req, res) => {
+    const data = await test_model.find();
+    return res.status(200).json(data);
+})
+
+router.get("/search/:id", async (req, res) => {
+    console.log(req.params.id)
+    const data = await test_model.findById(req.params.id)
+    return res.status(200).json(data)
+})
+router.put('/update/:id', async(req, res) => {
+    const id = req.params.id;
+    const update = req.body;
+    const options = {new : true};
+    console.log(update);
+    const result = await test_model.findByIdAndUpdate(id, update, options);
+    return res.json(result);
+})
+
+module.exports = router
+
+>>test.rest
+
+POST http://localhost:5000/api/insertdata
+content-type: application/json
+
+{
+    "name": "DesignPattern",
+    "count":0
+}
+
+>>client>comp
+>>poll.js
+
+import axios from 'axios'
+import React, { useEffect } from 'react'
+import { useState } from 'react'
+
+const Poll_system = () => {
+  
+    const [choose, setChoose] = useState("")
+    const [Data, setData] = useState([])
+
+    const getdata = async () => {
+        const data = await fetch("http://localhost:5000/api/display")
+        setData(await data.json())
+    }
+
+    useEffect(() => {
+        getdata()
+    }, [])
+
+    const opinion = async () => {
+        const data = await fetch(`http://localhost:5000/api/search/${choose}`);
+        const result = await data.json();
+        console.log(result)
+        const count = result.count + 1
+        const data1 = await axios.put(`http://localhost:5000/api/update/${choose}`, {
+            count
+        })
+        window.location.reload()
+        getdata()
+    }
+
+  return (
+    <>
+        
+        <h2 align = "center">Choose Subject you like</h2>
+        <hr/>
+        <form method="post" align="center">
+        {
+                Data.map((item) => {
+                    return (
+                        <>
+                        
+                            <input  type = "radio" name = "choose" value = {item._id} onClick={(e) => setChoose(e.target.value)} />
+                            {item.name} &nbsp;&nbsp;&nbsp;
+                        </>
+                    )
+                })
+            }
+            <br/>
+            <hr/>
+            <button className='btn btn-sm btn-dark mt-2' type = "button" onClick = { opinion } >Submit</button>
+        </form>        
+<hr className='form-group' />
+        <table className='table text-light bg-dark w-50' align = "center" cellPadding = "10" cellSpacing = "20">
+            <tr className='bg-dark text-light'>
+                <td align = "center" colSpan = "3">Poll Portal</td>
+            </tr>
+            <tr className='bg-light text-dark'>
+               
+                <td>Subject Name</td>
+                <td>count</td>
+            </tr>
+            {
+                Data.map((item) => {
+                    return (
+                        <tr>
+                            
+                            <td>{item.name}</td>
+                            <td>{item.count}</td>
+                        </tr>
+                    )
+                })
+            }
+        </table>
+    </>
+  )
+}
+export default Poll_system
+
