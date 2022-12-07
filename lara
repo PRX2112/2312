@@ -145,7 +145,10 @@ viewwwww
                                 <td>{{$get->name}}</td>
                                 <td>{{$get->email}}</td>
                                 <td>{{$get->hobby}}</td>
-                                <td>{{$get->profile}}</td>
+                                <td>
+                                    {{$get->profile}}
+                                    <img class="p-3" src="{{asset('./uploads/'.$get->profile)}}" height="150px" width="200px" alt="">
+                                </td>
                                 <td><a class="btn btn-sm btn-dark mr-2" href="update/{{$get->id}}">Update</a></td>
                                 <td><a class="btn btn-sm btn-danger" href="delete/{{$get->id}}">Remove</a></td>
                             </tr>
