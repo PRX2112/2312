@@ -235,3 +235,26 @@ update>viewwwww
         </div>
     </body>
 </html>
+
+//search
+<form action="" method="GET">
+        <div class="card">
+            <div class="card-body w-25 d-flex">
+            <input type="search" name="search" placeholder="Search by Name" value="{{$search}}" class="form-control mx-1"> <button class="btn btn-warning">Search</button>
+            </div>
+        </div>
+</form>
+
+>cont
+
+ public function view(Request $req)
+    {
+        # code...
+        $search = $req['search'] ?? "";
+        if($search != ""){
+            $data=DB::table('user')->where('name','LIKE','%'.$search.'%')->get();
+        }else{
+            $data=DB::table('user')->get();
+        }
+        return view('view',compact('data','search'));
+    }
